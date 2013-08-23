@@ -105,6 +105,24 @@
 (defmethod soap-str->obj :boolean [soap-str argtype] (Boolean/parseBoolean soap-str))
 (defmethod soap-str->obj :default [soap-str argtype] soap-str)
 
+(defn make-om-elem
+  ([factory xml-namespace tag-name]
+   (.createOMElement
+           factory (javax.xml.namespace.QName. xml-namespace tag-name)))
+  ([factory xml-namespace tag-name value]
+   (doto (.createOMElement
+           factory (javax.xml.namespace.QName. xml-namespace tag-name))
+     (.setText value))))
+
+(defn map-obj->om-element
+  [factory op argtype argval]
+  (let [xml-namespace (axis-op-namespace op)
+        outer-element (make-om-elem factory xml-namespace (:name argtype))]
+    (doseq [[key val] argval]
+      (.addChild outer-element
+                 (make-om-elem factory xml-namespace (name key) val)))
+    outer-element))
+
 (defn make-client [url]
   (doto (org.apache.axis2.client.ServiceClient. nil (java.net.URL. url) nil nil)
     (.setOptions
@@ -119,9 +137,11 @@
         op-args (axis-op-args op)]
     (doseq [[argval argtype] (map list args op-args)]
       (.addChild request
-                 (doto (.createOMElement
-                         factory (javax.xml.namespace.QName. (axis-op-namespace op) (:name argtype)))
-                   (.setText (obj->soap-str argval (:type argtype))))))
+                 (if (nil? (:type argtype))
+                   (map-obj->om-element factory op argtype argval)
+                   (doto (.createOMElement
+                           factory (javax.xml.namespace.QName. (axis-op-namespace op) (:name argtype)))
+                     (.setText (obj->soap-str argval (:type argtype)))))))
     request))
 
 (defn get-result [op retelem]
