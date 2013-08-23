@@ -1,6 +1,6 @@
 (ns clj-soap.core
   (:require [clojure.core.incubator :refer [-?>]]
-            [clojure.data.json :as json]
+            [clojure.data.xml :as xml]
             [clojure.string :as str]))
 
 ;;; Defining SOAP Server
@@ -147,22 +147,7 @@
     request))
 
 (defn get-result [op retelem]
-  (let [ret-str (.getText (first (iterator-seq (.getChildElements retelem))))]
-    (if (not (empty? ret-str))
-      (soap-str->obj ret-str (axis-op-rettype op))
-      (if (not (nil? (.getFirstElement retelem)))
-        (let [children (-?> retelem .getChildElements
-                            iterator-seq first .getChildElements
-                            iterator-seq)
-              elem->pair #(conj [] (keyword (.getLocalName %)) (.getText %))
-              pairs (map elem->pair children)
-              result-map (into {} pairs)]
-          (if (= "JSON" (:responseFormat result-map))
-            (assoc result-map :responseJson (json/read-str
-                                             (:responseText result-map)
-                                             :key-fn #(keyword (str/replace % " " ""))))
-            result-map))
-        (str retelem)))))
+  (xml/parse-str (str retelem)))
 
 (defn client-call [client op & args]
   (if (isa? (class op) org.apache.axis2.description.OutOnlyAxisOperation)
