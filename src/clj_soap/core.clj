@@ -81,7 +81,8 @@
                                  (iterator-seq (.getMessages axis-op))))
                   .getSchemaElement .getSchemaType
                   .getParticle .getItems .getIterator iterator-seq)]
-    {:name (.getName elem) :type (-?> elem .getSchemaType .getName keyword)}))
+    {:name (.getName elem) :type (-?> elem .getSchemaType .getName keyword)
+     :elem elem}))
 
 (defn axis-op-rettype [axis-op]
   (-?> (first (filter #(= "in" (.getDirection %))
@@ -159,7 +160,9 @@
   (let [client (make-client url)]
     (->> (for [op (axis-service-operations (.getAxisService client))]
                [(keyword (axis-op-name op))
-                (fn soap-call [& args] (apply client-call client op args))])
+                {:fn (fn soap-call [& args]
+                       (apply client-call client op args))
+                 :op op}])
       (into {}))))
 
 (defn client-fn
@@ -167,5 +170,9 @@
   [url]
   (let [px (client-proxy url)]
     (fn [opname & args]
-      (apply (px opname) args))))
+      (cond
+        (= opname :methods) (keys px)
+        (= opname :sig) (:op (px (first args)))
+        :else (apply (:fn (px opname)) args)))))
+
 
