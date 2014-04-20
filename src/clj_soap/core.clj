@@ -115,7 +115,7 @@
   ([factory xml-namespace tag-name value]
    (doto (.createOMElement
            factory (javax.xml.namespace.QName. xml-namespace tag-name))
-     (.setText value))))
+     (.setText (str value)))))
 
 (defn map-obj->om-element
   [factory op argtype argval]
@@ -148,7 +148,7 @@
     request))
 
 (defn get-result [op retelem]
-  (xml/parse-str (str retelem)))
+  (str retelem))
 
 (defn client-call [client op & args]
   (if (isa? (class op) org.apache.axis2.description.OutOnlyAxisOperation)
@@ -174,5 +174,3 @@
         (= opname :methods) (keys px)
         (= opname :sig) (:op (px (first args)))
         :else (apply (:fn (px opname)) args)))))
-
-
