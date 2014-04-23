@@ -1,7 +1,7 @@
 (ns clj-soap.core
-  (:require [clojure.core.incubator :refer [-?>]]
-            [clojure.data.xml :as xml]
-            [clojure.string :as str]))
+  (:require [clj-time.core :as t]
+            [clj-time.format :as f]
+            [clojure.core.incubator :refer [-?>]]))
 
 ;;; Defining SOAP Server
 
@@ -96,16 +96,21 @@
 
 (defmethod obj->soap-str :integer [obj argtype] (str obj))
 (defmethod obj->soap-str :double [obj argtype] (str obj))
+(defmethod obj->soap-str :long [obj argtype] (str obj))
 (defmethod obj->soap-str :string [obj argtype] (str obj))
 (defmethod obj->soap-str :boolean [obj argtype] (str obj))
 (defmethod obj->soap-str :default [obj argtype] (str obj))
 
 (defmulti soap-str->obj (fn [obj argtype] argtype))
 
+(def multi-parser (f/formatter (t/default-time-zone) "YYYY-MM-dd" "YYYY/MM/dd"))
+
 (defmethod soap-str->obj :integer [soap-str argtype] (Integer/parseInt soap-str))
 (defmethod soap-str->obj :double [soap-str argtype] (Double/parseDouble soap-str))
+(defmethod soap-str->obj :long [soap-str argtype] (Long/parseLong soap-str))
 (defmethod soap-str->obj :string [soap-str argtype] soap-str)
 (defmethod soap-str->obj :boolean [soap-str argtype] (Boolean/parseBoolean soap-str))
+(defmethod soap-str->obj :date [soap-str argtype] (f/parse multi-parser soap-str))
 (defmethod soap-str->obj :default [soap-str argtype] soap-str)
 
 (defn make-om-elem

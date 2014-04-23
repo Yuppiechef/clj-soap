@@ -6,9 +6,9 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/core.incubator "0.1.2"]
                  [org.apache.axis2/axis2-adb "1.6.2"]
+                 [clj-time "0.7.0"]
                  [org.apache.axis2/axis2-transport-http "1.6.2"]
                  [org.apache.axis2/axis2-transport-local "1.6.2"]
                  [org.clojure/data.xml "0.0.7"]]
   :source-paths ["src" "test"]
   :aot [clj-soap.test.core])
-
