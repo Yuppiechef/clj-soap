@@ -103,7 +103,7 @@
 
 (defmulti soap-str->obj (fn [obj argtype] argtype))
 
-(def multi-parser (f/formatter (t/default-time-zone) "YYYY-MM-dd" "YYYY/MM/dd"))
+(def multi-parser (f/formatter (t/default-time-zone) "dd/MM/YYYY HH:mm:ss a" "YYYY-MM-dd" "YYYY/MM/dd"))
 
 (defmethod soap-str->obj :integer [soap-str argtype] (Integer/parseInt soap-str))
 (defmethod soap-str->obj :double [soap-str argtype] (Double/parseDouble soap-str))
@@ -131,11 +131,12 @@
                  (make-om-elem factory xml-namespace (name key) val)))
     outer-element))
 
-(defn make-client [url]
+(defn make-client [url options]
   (doto (org.apache.axis2.client.ServiceClient. nil (java.net.URL. url) nil nil)
     (.setOptions
       (doto (org.apache.axis2.client.Options.)
-        (.setTo (org.apache.axis2.addressing.EndpointReference. url))))))
+        (.setTo (org.apache.axis2.addressing.EndpointReference. url))
+        (.setTimeOutInMilliSeconds (options :timeout-millis))))))
 
 (defn make-request [op & args]
   (let [factory (org.apache.axiom.om.OMAbstractFactory/getOMFactory)
@@ -162,20 +163,22 @@
       op (.sendReceive client (.getName op) (apply make-request op args)))))
 
 (defn client-proxy [url]
-  (let [client (make-client url)]
+  (let [client (make-client url options)]
     (->> (for [op (axis-service-operations (.getAxisService client))]
-               [(keyword (axis-op-name op))
-                {:fn (fn soap-call [& args]
-                       (apply client-call client op args))
-                 :op op}])
-      (into {}))))
+           [(keyword (axis-op-name op))
+            {:fn (fn soap-call [& args]
+                   (apply client-call client op args))
+             :op op}])
+         (into {}))))
 
 (defn client-fn
+  "Options is a map currently supporting :timeout-millis"
+  ([url options] (client-fn url nil))
   "Make SOAP client function, which is called as: (x :someMethod arg1 arg2 ...)"
-  [url]
-  (let [px (client-proxy url)]
-    (fn [opname & args]
-      (cond
-        (= opname :methods) (keys px)
-        (= opname :sig) (:op (px (first args)))
-        :else (apply (:fn (px opname)) args)))))
+  ([url options]
+     (let [px (client-proxy url options)]
+       (fn [opname & args]
+         (cond
+          (= opname :methods) (keys px)
+          (= opname :sig) (:op (px (first args)))
+          :else (apply (:fn (px opname)) args))))))
