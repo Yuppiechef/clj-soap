@@ -1,7 +1,8 @@
 (ns clj-soap.core
   (:require [clj-time.core :as t]
             [clj-time.format :as f]
-            [clojure.core.incubator :refer [-?>]]))
+            [clojure.core.incubator :refer [-?>]])
+  (:import [org.apache.axis2.transport.http.HTTPConstants SO_TIMEOUT CONNECTION_TIMEOUT]))
 
 ;;; Defining SOAP Server
 
@@ -136,7 +137,9 @@
     (.setOptions
       (doto (org.apache.axis2.client.Options.)
         (.setTo (org.apache.axis2.addressing.EndpointReference. url))
-        (.setTimeOutInMilliSeconds (options :timeout-millis))))))
+        (.setTimeOutInMilliSeconds (options :timeout-millis))
+        (.setProperty SO_TIMEOUT (options :timeout-millis))
+        (.setProperty CONNECTION_TIMEOUT (options :timeout-millis))))))
 
 (defn make-request [op & args]
   (let [factory (org.apache.axiom.om.OMAbstractFactory/getOMFactory)
