@@ -162,7 +162,7 @@
     (get-result
       op (.sendReceive client (.getName op) (apply make-request op args)))))
 
-(defn client-proxy [url]
+(defn client-proxy [url options]
   (let [client (make-client url options)]
     (->> (for [op (axis-service-operations (.getAxisService client))]
            [(keyword (axis-op-name op))
@@ -172,9 +172,9 @@
          (into {}))))
 
 (defn client-fn
-  "Options is a map currently supporting :timeout-millis"
-  ([url options] (client-fn url nil))
-  "Make SOAP client function, which is called as: (x :someMethod arg1 arg2 ...)"
+  "Returns a SOAP client function, which is called as: (x :someMethod arg1 arg2 ...)
+Options is a map currently supporting :timeout-millis"
+  ([url] (client-fn url nil))
   ([url options]
      (let [px (client-proxy url options)]
        (fn [opname & args]
