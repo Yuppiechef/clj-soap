@@ -2,7 +2,7 @@
   (:require [clj-time.core :as t]
             [clj-time.format :as f]
             [clojure.core.incubator :refer [-?>]])
-  (:import [org.apache.axis2.transport.http.HTTPConstants SO_TIMEOUT CONNECTION_TIMEOUT]))
+  (:import [org.apache.axis2.transport.http HTTPConstants]))
 
 ;;; Defining SOAP Server
 
@@ -135,11 +135,13 @@
 (defn make-client [url options]
   (doto (org.apache.axis2.client.ServiceClient. nil (java.net.URL. url) nil nil)
     (.setOptions
-      (doto (org.apache.axis2.client.Options.)
-        (.setTo (org.apache.axis2.addressing.EndpointReference. url))
-        (.setTimeOutInMilliSeconds (options :timeout-millis))
-        (.setProperty SO_TIMEOUT (options :timeout-millis))
-        (.setProperty CONNECTION_TIMEOUT (options :timeout-millis))))))
+     (let [opts (org.apache.axis2.client.Options.)]
+        (.setTo opts (org.apache.axis2.addressing.EndpointReference. url))
+        (when (options :timeout-millis)
+          (.setTimeOutInMilliSeconds opts (options :timeout-millis))
+          (.setProperty opts HTTPConstants/SO_TIMEOUT (options :timeout-millis))
+          (.setProperty opts HTTPConstants/CONNECTION_TIMEOUT (options :timeout-millis)))
+        opts))))
 
 (defn make-request [op & args]
   (let [factory (org.apache.axiom.om.OMAbstractFactory/getOMFactory)
@@ -177,7 +179,7 @@
 (defn client-fn
   "Returns a SOAP client function, which is called as: (x :someMethod arg1 arg2 ...)
 Options is a map currently supporting :timeout-millis"
-  ([url] (client-fn url nil))
+  ([url] (client-fn url {}))
   ([url options]
      (let [px (client-proxy url options)]
        (fn [opname & args]
