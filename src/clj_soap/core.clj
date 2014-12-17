@@ -127,6 +127,7 @@
   [factory op argtype argval]
   (let [xml-namespace (axis-op-namespace op)
         outer-element (make-om-elem factory xml-namespace (:name argtype))]
+    
     (doseq [[key val] argval]
       (.addChild outer-element
                  (make-om-elem factory xml-namespace (name key) val)))
@@ -141,6 +142,8 @@
           (.setTimeOutInMilliSeconds opts (options :timeout-millis))
           (.setProperty opts HTTPConstants/SO_TIMEOUT (options :timeout-millis))
           (.setProperty opts HTTPConstants/CONNECTION_TIMEOUT (options :timeout-millis)))
+        (when (options :call-transport-cleanup)
+          (.setCallTransportCleanup opts (options :call-transport-cleanup)))
         opts))))
 
 (defn make-request [op & args]
@@ -150,6 +153,7 @@
                             (axis-op-namespace op) (axis-op-name op)))
         op-args (axis-op-args op)]
     (doseq [[argval argtype] (map list args op-args)]
+      
       (.addChild request
                  (if (nil? (:type argtype))
                    (map-obj->om-element factory op argtype argval)
@@ -178,7 +182,7 @@
 
 (defn client-fn
   "Returns a SOAP client function, which is called as: (x :someMethod arg1 arg2 ...)
-Options is a map currently supporting :timeout-millis"
+Options is a map currently supporting :timeout-millis and :call-transport-cleanup"
   ([url] (client-fn url {}))
   ([url options]
      (let [px (client-proxy url options)]
