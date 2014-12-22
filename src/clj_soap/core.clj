@@ -166,10 +166,11 @@
   (str retelem))
 
 (defn client-call [client op & args]
-  (if (isa? (class op) org.apache.axis2.description.OutOnlyAxisOperation)
-    (.sendRobust client (.getName op) (apply make-request op args))
-    (get-result
-      op (.sendReceive client (.getName op) (apply make-request op args)))))
+  (locking client
+    (if (isa? (class op) org.apache.axis2.description.OutOnlyAxisOperation)
+     (.sendRobust client (.getName op) (apply make-request op args))
+     (get-result
+      op (.sendReceive client (.getName op) (apply make-request op args))))))
 
 (defn client-proxy [url options]
   (let [client (make-client url options)]
