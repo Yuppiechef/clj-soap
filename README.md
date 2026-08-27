@@ -1,4 +1,4 @@
-# clj-soap
+# clj-soap (Archived)
 
 clj-soap is SOAP server and client using Apache Axis2.
 
